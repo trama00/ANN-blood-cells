@@ -11,3 +11,6 @@ This repository contains my work for the first homework assignment in the Artifi
 
 ## Objective
 To apply deep learning techniques to accurately classify blood cell images, contributing to advancements in medical image analysis.
+
+## Data
+.npz file downloadable here https://drive.google.com/drive/folders/152B-_69uFDqnDyBIbS0gEhjlwHmqEKeB
