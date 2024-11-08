@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # load dataset
-dataset = np.load("data/public_data.npz", allow_pickle=True)
+dataset = np.load("data/training_set.npz", allow_pickle=True)
 
 # separate data and labels
-data = dataset['data']
+data = dataset['images']
 labels = dataset['labels']
 
 def save_images_to_pdf(data, labels, N=4, M=5, folder="imgPrint", debug=False):
