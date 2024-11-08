@@ -3,12 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 
-# Load dataset
-dataset = np.load("data/training_set.npz", allow_pickle=True)
-
-# Separate data and labels
-data = dataset['images']
-labels = dataset['labels']
 
 def process_batch(batch_index, data, labels, N, M, images_per_pdf, folder):
     """
@@ -83,6 +77,37 @@ def save_images_to_pdf_parallel(data, labels, N=4, M=5, folder="imgPrint", debug
                                      for batch_index in range(total_batches)])
     
     print(f"Saved {total_batches} PDF files in '{folder}'.")
+    
+# Function to check if an image matches the conditions
+def check_image(i, img, shrek, troll, tol):
+    if (np.allclose(img, shrek, atol=tol) or np.allclose(img, troll, atol=tol)) and i != 11959 and i != 13559:
+        return i
+    return None
 
-# Example usage:
-save_images_to_pdf_parallel(data, labels, N=8, M=10, debug=False)
+# Function to parallelize the process of finding the indices to remove
+def parallel_index_removal(data, shrek, troll, tol=0.0001, num_workers=4):
+    # Create a Pool of workers and apply the function to each image
+    with Pool(processes=num_workers) as pool:
+        results = pool.starmap(check_image, [(i, img, shrek, troll, tol) for i, img in enumerate(data)])
+
+    # Filter out None values (no matches) and return the indices to remove
+    index_to_remove = [index for index in results if index is not None]
+    
+    return index_to_remove
+
+# load dataset
+dataset = np.load("data/training_set.npz", allow_pickle=True)
+
+# separate data and labels
+data = dataset['images']
+labels = dataset['labels']
+
+shrek = data[11959]
+troll = data[13559]
+
+index_to_remove = parallel_index_removal(data, shrek, troll, tol=0.0001, num_workers=4)
+
+dataClean = np.delete(data, index_to_remove, axis=0)
+labelsClean = np.delete(labels, index_to_remove)
+
+save_images_to_pdf_parallel(dataClean, labelsClean, N=8, M=10, folder="imgPrintClean", debug=False)

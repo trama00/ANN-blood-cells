@@ -3,4 +3,4 @@ models/*.keras
 .vscode/
 *venv*
 *Venv*
-imgPrint/
+imgPrint*
