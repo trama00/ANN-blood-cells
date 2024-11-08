@@ -48,16 +48,17 @@ def save_images_to_pdf(data, labels, N=4, M=5, folder="imgPrint", debug=False):
                 # Display image and add label and index to the corners
                 axs[row, col].imshow(img)
                 
-                # Add label to the top-right corner
+                # Add label to the bottom-right corner
                 axs[row, col].text(
-                    img.shape[1] - 10, 10,  # Position near the top-right corner
-                    'H' if label == 'healthy' else 'U',
+                    img.shape[1] - 10, img.shape[0] - 10,  # Position near the bottom-right corner
+                    label,
                     color="white",
                     fontsize=12,
                     ha='right',
-                    va='top',
+                    va='bottom',
                     bbox=dict(boxstyle="round,pad=0.2", fc="black", alpha=0.5)
                 )
+
                 
                 # Add index to the top-left corner
                 axs[row, col].text(
