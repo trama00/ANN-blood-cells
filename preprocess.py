@@ -4,7 +4,7 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.layers import RandomFlip, RandomRotation, RandomZoom, RandomBrightness
 from tensorflow.keras import Sequential
 import tensorflow.keras.utils as tfku
-from utils import clean_dataset, remove_background
+from utils import parallel_index_removal
 
 def balance_classes(images, labels, target_class_size=2000, augmentation=None):
     """
@@ -92,25 +92,17 @@ def one_hot_encode_labels(y_train, y_val, y_test):
     return y_train_encoded, y_val_encoded, y_test_encoded
 
 
-def preprocess_dataset(images, labels, threshold=0.5):
-    """
-    Preprocesses the dataset by cleaning, rescaling and removing background from images.
-    
-    Parameters:
-    - images: Input images (numpy array of shape (num_images, height, width, channels))
-    - labels: Input labels (numpy array of shape (num_images,))
-    - threshold: Threshold value for background removal (more than threshold is considered background)
+def clean_dataset(images, labels):
+    # Define shrek and troll images
+    shrek = images[11959]
+    troll = images[13559]
 
-    Returns:
-    - Tuple of preprocessed images and labels as numpy arrays
-    """
-    # Clean the dataset
-    images, labels = clean_dataset(images, labels)
-    
-    # Rescale the images to [0, 1]
-    images = images / 255.0
-    
-    # Remove background from images
-    images = np.array([remove_background(img, threshold=threshold) for img in images])
+    # Find indices to remove
+    index_to_remove = parallel_index_removal(images, shrek, troll, tol=0.0001, num_workers=4)
 
+    # Remove the images and labels at those indices
+    images = np.delete(images, index_to_remove, axis=0)
+    labels = np.delete(labels, index_to_remove)
+
+    # Return the modified images and labels
     return images, labels
