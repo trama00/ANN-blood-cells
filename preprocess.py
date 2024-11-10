@@ -1,41 +1,10 @@
 import numpy as np
-from multiprocessing import Pool
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.layers import RandomFlip, RandomRotation, RandomZoom, RandomBrightness
+from tensorflow.keras import Sequential
 import tensorflow.keras.utils as tfku
-
-# Function to check if an image matches the conditions
-def check_image(i, img, shrek, troll, tol):
-    """Check if an image matches the shrek or troll images within a tolerance."""
-    if (np.allclose(img, shrek, atol=tol) or np.allclose(img, troll, atol=tol)) and i != 11959 and i != 13559:
-        return i
-    return None
-
-# Function to parallelize the process of finding the indices to remove
-def parallel_index_removal(data, shrek, troll, tol=0.0001, num_workers=4):
-    """Parallelize the removal of images that match 'shrek' or 'troll'."""
-    with Pool(processes=num_workers) as pool:
-        results = pool.starmap(check_image, [(i, img, shrek, troll, tol) for i, img in enumerate(data)])
-
-    # Filter out None values (no matches) and return the indices to remove
-    index_to_remove = [index for index in results if index is not None]
-    
-    return index_to_remove
-
-# Main Function (example of usage)
-def clean_dataset(images, labels):
-    # Define shrek and troll images
-    shrek = images[11959]
-    troll = images[13559]
-
-    # Find indices to remove
-    index_to_remove = parallel_index_removal(images, shrek, troll, tol=0.0001, num_workers=4)
-
-    # Remove the images and labels at those indices
-    images = np.delete(images, index_to_remove, axis=0)
-    labels = np.delete(labels, index_to_remove)
-
-    # Return the modified images and labels
-    return images, labels
+from utils import clean_dataset, remove_background
 
 def balance_classes(images, labels, target_class_size=2000, augmentation=None):
     """
@@ -45,25 +14,20 @@ def balance_classes(images, labels, target_class_size=2000, augmentation=None):
     - images: Input images (numpy array of shape (num_images, height, width, channels))
     - labels: Input labels (numpy array of shape (num_images,))
     - target_class_size: Target number of images for each class after balancing
-    - augmentation: Keras ImageDataGenerator for augmentation. If None, defaults to standard augmentation.
+    - augmentation: Optional keras Sequential model for augmentation. If None, defaults to standard augmentation.
 
     Returns:
     - Tuple of (balanced_images, balanced_labels) as numpy arrays
     """
     target_class_size = int(target_class_size)  # Ensure integer value
-    
+
     # Default augmentation if none is provided
     if augmentation is None:
-        augmentation = ImageDataGenerator(
-            horizontal_flip=True,
-            vertical_flip=True,
-            rotation_range=30,
-            width_shift_range=0.2,
-            height_shift_range=0.2,
-            shear_range=0.1,
-            brightness_range=[0.8, 1.2],
-            fill_mode='reflect'
-        )
+        augmentation = Sequential([
+            RandomFlip("horizontal_and_vertical"),
+            RandomRotation(0.2),
+            RandomBrightness(0.2)
+        ])
 
     # Count the occurrences of each class
     unique_classes = np.unique(labels)
@@ -83,25 +47,21 @@ def balance_classes(images, labels, target_class_size=2000, augmentation=None):
             class_indices = np.where(labels == cls)[0]
             class_images = images[class_indices]
             
-            generator = augmentation.flow(
-                class_images,
-                batch_size=min(len(class_images), samples_needed),
-                shuffle=False
-            )
-            
-            # Generate samples until we reach desired count
             generated_samples = 0
             while generated_samples < samples_needed:
-                batch = next(generator)
-                samples_to_add = min(len(batch), samples_needed - generated_samples)
-                augmented_images_list.append(batch[:samples_to_add])
-                augmented_labels_list.append(np.full(samples_to_add, cls))
-                generated_samples += samples_to_add
+                # Augment each image individually
+                for img in class_images:
+                    if generated_samples >= samples_needed:
+                        break
+                    augmented_img = augmentation(tf.expand_dims(img, axis=0))
+                    augmented_images_list.append(augmented_img[0].numpy())
+                    augmented_labels_list.append(cls)
+                    generated_samples += 1
 
     # Convert lists to numpy arrays if there are augmented samples
     if augmented_images_list:
-        augmented_images = np.concatenate(augmented_images_list, axis=0)
-        augmented_labels = np.concatenate(augmented_labels_list, axis=0)
+        augmented_images = np.array(augmented_images_list)
+        augmented_labels = np.array(augmented_labels_list)
         
         # Combine original and augmented data
         images_balanced = np.concatenate((images, augmented_images), axis=0)
@@ -111,6 +71,7 @@ def balance_classes(images, labels, target_class_size=2000, augmentation=None):
         labels_balanced = labels
 
     return images_balanced, labels_balanced
+
 
 def one_hot_encode_labels(y_train, y_val, y_test):
     """
@@ -129,3 +90,26 @@ def one_hot_encode_labels(y_train, y_val, y_test):
     y_test_encoded = tfku.to_categorical(y_test)
     
     return y_train_encoded, y_val_encoded, y_test_encoded
+
+
+def preprocess_dataset(images, labels, threshold=0.5):
+    """
+    Preprocesses the dataset by cleaning, rescaling and removing background from images.
+    
+    Parameters:
+    - images: Input images (numpy array of shape (num_images, height, width, channels))
+    - labels: Input labels (numpy array of shape (num_images,))
+
+    Returns:
+    - Tuple of preprocessed images and labels as numpy arrays
+    """
+    # Clean the dataset
+    images, labels = clean_dataset(images, labels)
+    
+    # Rescale the images to [0, 1]
+    images = images / 255.0
+    
+    # Remove background from images
+    images = np.array([remove_background(img, threshold=threshold) for img in images])
+
+    return images
