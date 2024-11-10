@@ -99,6 +99,7 @@ def preprocess_dataset(images, labels, threshold=0.5):
     Parameters:
     - images: Input images (numpy array of shape (num_images, height, width, channels))
     - labels: Input labels (numpy array of shape (num_images,))
+    - threshold: Threshold value for background removal (more than threshold is considered background)
 
     Returns:
     - Tuple of preprocessed images and labels as numpy arrays
@@ -112,4 +113,4 @@ def preprocess_dataset(images, labels, threshold=0.5):
     # Remove background from images
     images = np.array([remove_background(img, threshold=threshold) for img in images])
 
-    return images
+    return images, labels
