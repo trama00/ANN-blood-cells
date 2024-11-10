@@ -1,6 +1,7 @@
 import numpy as np
 from multiprocessing import Pool
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import tensorflow.keras.utils as tfku
 
 # Function to check if an image matches the conditions
 def check_image(i, img, shrek, troll, tol):
@@ -43,12 +44,14 @@ def balance_classes(images, labels, target_class_size=2000, augmentation=None):
     Parameters:
     - images: Input images (numpy array of shape (num_images, height, width, channels))
     - labels: Input labels (numpy array of shape (num_images,))
-    - target_class_size: Target number of images for the underrepresented classes
+    - target_class_size: Target number of images for each class after balancing
     - augmentation: Keras ImageDataGenerator for augmentation. If None, defaults to standard augmentation.
 
     Returns:
-    - Balanced images and labels
+    - Tuple of (balanced_images, balanced_labels) as numpy arrays
     """
+    target_class_size = int(target_class_size)  # Ensure integer value
+    
     # Default augmentation if none is provided
     if augmentation is None:
         augmentation = ImageDataGenerator(
@@ -63,38 +66,66 @@ def balance_classes(images, labels, target_class_size=2000, augmentation=None):
         )
 
     # Count the occurrences of each class
-    class_counts = {cls: len(np.where(labels == cls)[0]) for cls in np.unique(labels)}
-
-    # Find underrepresented classes
-    underrepresented_classes = [cls for cls, count in class_counts.items() if count < target_class_size]
+    unique_classes = np.unique(labels)
+    class_counts = {cls: np.sum(labels == cls) for cls in unique_classes}
     
-    augmented_images = []
-    augmented_labels = []
+    augmented_images_list = []
+    augmented_labels_list = []
 
-    # Apply augmentation only to the underrepresented classes
-    for cls in underrepresented_classes:
-        class_indices = np.where(labels == cls)[0]
-        class_images = images[class_indices]
+    # Apply augmentation to the underrepresented classes
+    for cls in unique_classes:
+        current_count = class_counts[cls]
+        if current_count < target_class_size:
+            # Calculate how many additional samples we need
+            samples_needed = target_class_size - current_count
+            
+            # Get images for current class
+            class_indices = np.where(labels == cls)[0]
+            class_images = images[class_indices]
+            
+            generator = augmentation.flow(
+                class_images,
+                batch_size=min(len(class_images), samples_needed),
+                shuffle=False
+            )
+            
+            # Generate samples until we reach desired count
+            generated_samples = 0
+            while generated_samples < samples_needed:
+                batch = next(generator)
+                samples_to_add = min(len(batch), samples_needed - generated_samples)
+                augmented_images_list.append(batch[:samples_to_add])
+                augmented_labels_list.append(np.full(samples_to_add, cls))
+                generated_samples += samples_to_add
 
-        # Create ImageDataGenerator for the current class (using the passed augmentation or default)
-        generator = augmentation
-
-        # Fit the generator on the images
-        augmented_gen = generator.flow(class_images, batch_size=len(class_images), shuffle=False)
-
-        # Generate augmented images
-        augmented_class_images = next(augmented_gen)
-
-        # Add augmented images and labels
-        augmented_images.extend(augmented_class_images)
-        augmented_labels.extend([cls] * len(augmented_class_images))
-
-    # Convert to numpy arrays
-    augmented_images = np.array(augmented_images)
-    augmented_labels = np.array(augmented_labels)
-    
-    # Append augmented images and labels back to the original dataset
-    images_balanced = np.concatenate((images, augmented_images), axis=0)
-    labels_balanced = np.concatenate((labels, augmented_labels), axis=0)
+    # Convert lists to numpy arrays if there are augmented samples
+    if augmented_images_list:
+        augmented_images = np.concatenate(augmented_images_list, axis=0)
+        augmented_labels = np.concatenate(augmented_labels_list, axis=0)
+        
+        # Combine original and augmented data
+        images_balanced = np.concatenate((images, augmented_images), axis=0)
+        labels_balanced = np.concatenate((labels, augmented_labels), axis=0)
+    else:
+        images_balanced = images
+        labels_balanced = labels
 
     return images_balanced, labels_balanced
+
+def one_hot_encode_labels(y_train, y_val, y_test):
+    """
+    One-hot encodes the provided label arrays.
+
+    Parameters:
+    - y_train: Array of training labels.
+    - y_val: Array of validation labels.
+    - y_test: Array of test labels.
+
+    Returns:
+    - Tuple of one-hot encoded arrays for y_train, y_val, and y_test.
+    """
+    y_train_encoded = tfku.to_categorical(y_train)
+    y_val_encoded = tfku.to_categorical(y_val)
+    y_test_encoded = tfku.to_categorical(y_test)
+    
+    return y_train_encoded, y_val_encoded, y_test_encoded

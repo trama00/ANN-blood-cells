@@ -35,9 +35,4 @@ def split_and_print_distribution(images, labels, val_size=0.2, test_size=0.2, se
     print_class_distribution(y_val, "Validation")
     print_class_distribution(y_test, "Test")
 
-    # One-hot encode the labels
-    y_train = tfk.utils.to_categorical(y_train)
-    y_val = tfk.utils.to_categorical(y_val)
-    y_test = tfk.utils.to_categorical(y_test)
-
     return X_train, X_val, X_test, y_train, y_val, y_test
