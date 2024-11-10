@@ -6,3 +6,4 @@ models/*.keras
 imgPrint*
 submissions/
 __pycache__/
+temp.py
