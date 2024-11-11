@@ -1,6 +1,8 @@
 import numpy as np
 from collections import Counter
 from sklearn.model_selection import train_test_split
+from multiprocessing import Pool
+from functools import partial
 
 def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, mixup_alpha=0.2, seed=42):
     # Split data into train+val and test sets (test_size will be ~20%)
@@ -57,9 +59,46 @@ def balance_dataset(X, y, balance_percentage=1.0):
     return X_balanced, y_balanced
 
 
-# Helper function to apply MixUp augmentation
-def apply_mixup(X, y, alpha=0.2):
+def apply_mixup(X, y, alpha=0.2, factor=1.5, batch_size=32, num_workers=4):
+    # Number of additional samples needed
+    target_size = int(len(X) * factor)
+    additional_samples = target_size - len(X)
+    
+    # Split the dataset into chunks for parallel processing
+    def chunk_data(X, y, chunk_size):
+        return [(X[i:i+chunk_size], y[i:i+chunk_size]) for i in range(0, len(X), chunk_size)]
+
+    # Create a pool of workers
+    pool = Pool(processes=num_workers)
+
+    # Create a partial function to apply MixUp on each chunk
+    apply_mixup_chunk = partial(apply_mixup_batch, alpha=alpha)
+
+    # Chunk the data
+    data_chunks = chunk_data(X, y, batch_size)
+
+    # Apply MixUp in parallel on each chunk
+    result = pool.starmap(apply_mixup_chunk, data_chunks)
+    
+    # Close the pool
+    pool.close()
+    pool.join()
+
+    # Concatenate results and select only the required number of samples
+    mixed_X = np.concatenate([r[0] for r in result], axis=0)[:additional_samples]
+    mixed_y = np.concatenate([r[1] for r in result], axis=0)[:additional_samples]
+
+    # Combine original and new samples
+    X_mixed = np.concatenate([X, mixed_X], axis=0)
+    y_mixed = np.concatenate([y, mixed_y], axis=0)
+
+    return X_mixed, y_mixed
+
+# Helper function to apply MixUp augmentation on a single batch
+def apply_mixup_batch(X, y, alpha=0.2):
     batch_size = len(X)
+    
+    # Generate lambda values using the Beta distribution
     lambda_vals = np.random.beta(alpha, alpha, batch_size)
     
     # Generate a permutation of indices for shuffling
@@ -73,12 +112,7 @@ def apply_mixup(X, y, alpha=0.2):
     mixed_X = lambda_vals[:, None, None, None] * X + (1 - lambda_vals[:, None, None, None]) * shuffled_X
     mixed_y = lambda_vals[:, None] * y + (1 - lambda_vals[:, None]) * shuffled_y
     
-    # Double the dataset by adding the mixed samples
-    mixed_X = np.concatenate([X, mixed_X], axis=0)
-    mixed_y = np.concatenate([y, mixed_y], axis=0)
-    
     return mixed_X, mixed_y
-
 
 # Helper function to print class distribution
 def print_class_distribution(y, set_name):
