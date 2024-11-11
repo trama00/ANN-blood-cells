@@ -98,3 +98,69 @@ class PreprocessLayer(tf.keras.layers.Layer):
         Creates a layer from its config.
         """
         return cls(**config)
+
+
+class ConditionalAugmentation(tf.keras.layers.Layer):
+    """
+    A custom Keras layer that conditionally applies data augmentation based on 
+    the training mode. This layer enables augmentation to be used only during 
+    training and bypassed during inference.
+
+    Attributes:
+    ----------
+    augmentation_layers : tf.keras.Sequential
+        A sequential model or list of augmentation layers that define the 
+        augmentation pipeline to be applied conditionally.
+
+    Methods:
+    -------
+    call(inputs, training=False, **kwargs)
+        Conditionally applies the augmentation layers when training is True; 
+        otherwise, returns the input as-is.
+    """
+    
+    def __init__(self, augmentation_layers, name=None, **kwargs):
+        """
+        Initializes the ConditionalAugmentation layer.
+
+        Parameters:
+        ----------
+        augmentation_layers : tf.keras.Sequential
+            The augmentation layers (e.g., RandomFlip, RandomRotation) to apply 
+            conditionally during training.
+        
+        name : str, optional
+            Optional name for the layer.
+        
+        **kwargs : 
+            Additional keyword arguments for the Keras Layer superclass.
+        """
+        super(ConditionalAugmentation, self).__init__(name=name, **kwargs)
+        self.augmentation_layers = augmentation_layers
+
+    def call(self, inputs, training=False, **kwargs):
+        """
+        Applies the augmentation layers only if training is True.
+        
+        Parameters:
+        ----------
+        inputs : Tensor
+            Input tensor to apply augmentation to if in training mode.
+        
+        training : bool, optional
+            Flag indicating whether the model is in training mode. If True, 
+            applies the augmentation; if False, bypasses it.
+        
+        **kwargs : 
+            Additional keyword arguments for the call method.
+        
+        Returns:
+        -------
+        Tensor
+            The augmented input tensor if training is True, otherwise the 
+            original input tensor.
+        """
+        # Only apply augmentation during training
+        if training:
+            return self.augmentation_layers(inputs)
+        return inputs
