@@ -1,12 +1,8 @@
-from sklearn.model_selection import train_test_split
-from tensorflow import keras as tfk
 import numpy as np
-
-import numpy as np
-from sklearn.model_selection import train_test_split
 from collections import Counter
+from sklearn.model_selection import train_test_split
 
-def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, seed=42):
+def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, mixup_alpha=0.2, seed=42):
     # Split data into train+val and test sets (test_size will be ~20%)
     X_train_val, X_test, y_train_val, y_test = train_test_split(
         images, labels, test_size=test_size, random_state=seed, stratify=labels
@@ -16,30 +12,30 @@ def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, s
     X_train, X_val, y_train, y_val = train_test_split(
         X_train_val, y_train_val, test_size=val_size / (1 - test_size), random_state=seed, stratify=y_train_val
     )
-
-    # Balance the training and validation sets by undersampling the larger classes
-    X_train_balanced, y_train_balanced = balance_dataset(X_train, y_train)
-    X_val_balanced, y_val_balanced = balance_dataset(X_val, y_val)
-
+    
+    # Balance the test and validation datasets
+    X_test_balanced, y_test_balanced = balance_dataset(X_test, y_test, balance_percentage=1.0)
+    X_val_balanced, y_val_balanced = balance_dataset(X_val, y_val, balance_percentage=1.0)
+    
     # Print set sizes
     print("Data Set Sizes:")
     print(f"{'-'*20}")
-    print(f"Train:      {X_train_balanced.shape[0]:>6}")
+    print(f"Train:      {X_train.shape[0]:>6}")
     print(f"Validation: {X_val_balanced.shape[0]:>6}")
-    print(f"Test:       {X_test.shape[0]:>6}\n")
+    print(f"Test:       {X_test_balanced.shape[0]:>6}\n")
 
     # Print class distributions for each set
-    print_class_distribution(y_train_balanced, "Train")
+    print_class_distribution(y_train, "Train")
     print_class_distribution(y_val_balanced, "Validation")
-    print_class_distribution(y_test, "Test")
+    print_class_distribution(y_test_balanced, "Test")
 
-    return X_train_balanced, X_val_balanced, X_test, y_train_balanced, y_val_balanced, y_test
+    return X_train, X_val_balanced, X_test_balanced, y_train, y_val_balanced, y_test_balanced
 
 
 # Helper function to balance dataset by undersampling larger classes
-def balance_dataset(X, y):
+def balance_dataset(X, y, balance_percentage=1.0):
     class_counts = Counter(y)
-    min_class_size = min(class_counts.values())  # The smallest class size
+    min_class_size = int(min(class_counts.values()) * balance_percentage)  # Adjust class size based on balance_percentage
     
     X_balanced = []
     y_balanced = []
@@ -59,6 +55,29 @@ def balance_dataset(X, y):
     y_balanced = np.concatenate(y_balanced)
     
     return X_balanced, y_balanced
+
+
+# Helper function to apply MixUp augmentation
+def apply_mixup(X, y, alpha=0.2):
+    batch_size = len(X)
+    lambda_vals = np.random.beta(alpha, alpha, batch_size)
+    
+    # Generate a permutation of indices for shuffling
+    indices = np.random.permutation(batch_size)
+    
+    # Shuffle images and labels together
+    shuffled_X = X[indices]
+    shuffled_y = y[indices]
+    
+    # Apply MixUp
+    mixed_X = lambda_vals[:, None, None, None] * X + (1 - lambda_vals[:, None, None, None]) * shuffled_X
+    mixed_y = lambda_vals[:, None] * y + (1 - lambda_vals[:, None]) * shuffled_y
+    
+    # Double the dataset by adding the mixed samples
+    mixed_X = np.concatenate([X, mixed_X], axis=0)
+    mixed_y = np.concatenate([y, mixed_y], axis=0)
+    
+    return mixed_X, mixed_y
 
 
 # Helper function to print class distribution

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras_cv.layers as kcv_layers
 
 class PreprocessLayer(tf.keras.layers.Layer):
     """
@@ -114,7 +115,7 @@ class ConditionalAugmentation(tf.keras.layers.Layer):
 
     Methods:
     -------
-    call(inputs, training=False, **kwargs)
+    call(inputs, labels=None, training=False, **kwargs)
         Conditionally applies the augmentation layers when training is True; 
         otherwise, returns the input as-is.
     """
@@ -137,6 +138,19 @@ class ConditionalAugmentation(tf.keras.layers.Layer):
         """
         super(ConditionalAugmentation, self).__init__(name=name, **kwargs)
         self.augmentation_layers = augmentation_layers
+        
+    def build(self, input_shape):
+        """
+        Builds the layer based on the input shape.
+
+        Since ConditionalAugmentation only wraps a Sequential model of augmentation layers,
+        no additional actions are required during building. This method is included to
+        suppress warnings from Keras, which expects a build method for all custom layers.
+        
+        Args:
+            input_shape (tuple): Shape of the input data.
+        """
+        super().build(input_shape)
 
     def call(self, inputs, training=False, **kwargs):
         """
@@ -144,8 +158,11 @@ class ConditionalAugmentation(tf.keras.layers.Layer):
         
         Parameters:
         ----------
-        inputs : Tensor
-            Input tensor to apply augmentation to if in training mode.
+        images : Tensor
+            Input image tensor to apply augmentation to if in training mode.
+        
+        labels : Tensor, optional
+            Input label tensor, required for certain augmentations like MixUp.
         
         training : bool, optional
             Flag indicating whether the model is in training mode. If True, 
@@ -156,11 +173,33 @@ class ConditionalAugmentation(tf.keras.layers.Layer):
         
         Returns:
         -------
-        Tensor
-            The augmented input tensor if training is True, otherwise the 
-            original input tensor.
+        Tensor or Tuple[Tensor, Tensor]
+            The augmented image (and label if required) tensor if training is True,
+            otherwise the original input tensor(s).
         """
-        # Only apply augmentation during training
         if training:
             return self.augmentation_layers(inputs)
         return inputs
+    
+    def get_config(self):
+        """
+        Returns the layer configuration for serialization.
+        
+        Returns:
+            dict: Configuration dictionary containing initialization arguments.
+        """
+        config = super().get_config()
+        return config
+    
+    @classmethod
+    def from_config(cls, config):
+        """
+        Creates a layer from its config.
+
+        Args:
+            config (dict): Configuration dictionary.
+        
+        Returns:
+            ConditionalAugmentation: A layer instance with the specified configuration.
+        """
+        return cls(**config)
