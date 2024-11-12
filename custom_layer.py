@@ -181,24 +181,16 @@ class ConditionalAugmentation(tf.keras.layers.Layer):
         return inputs
     
     def get_config(self):
-        """
-        Returns the layer configuration for serialization.
-        
-        Returns:
-            dict: Configuration dictionary containing initialization arguments.
-        """
+        # Serialize the configuration, including the augmentation layers.
         config = super().get_config()
+        # Serialize augmentation layers by saving the configuration of each layer
+        config['augmentation_layers'] = self.augmentation_layers.get_config()
         return config
-    
+
     @classmethod
     def from_config(cls, config):
-        """
-        Creates a layer from its config.
-
-        Args:
-            config (dict): Configuration dictionary.
-        
-        Returns:
-            ConditionalAugmentation: A layer instance with the specified configuration.
-        """
-        return cls(**config)
+        # Extract the augmentation layers' configuration
+        augmentation_layers_config = config.pop('augmentation_layers')
+        # Rebuild the augmentation layers (using get_layer to ensure correct deserialization)
+        augmentation_layers = tf.keras.Sequential.from_config(augmentation_layers_config)
+        return cls(augmentation_layers=augmentation_layers, **config)
