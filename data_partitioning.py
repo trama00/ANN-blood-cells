@@ -59,30 +59,29 @@ def balance_dataset(X, y, balance_percentage=1.0):
     return X_balanced, y_balanced
 
 
+from multiprocessing import Pool
+from functools import partial
+import numpy as np
+
 def apply_mixup(X, y, alpha=0.2, factor=1.5, batch_size=32, num_workers=4):
     # Number of additional samples needed
     target_size = int(len(X) * factor)
     additional_samples = target_size - len(X)
     
-    # Split the dataset into chunks for parallel processing
+    # Split the dataset into chunks aligned with batch size for consistency
     def chunk_data(X, y, chunk_size):
         return [(X[i:i+chunk_size], y[i:i+chunk_size]) for i in range(0, len(X), chunk_size)]
 
     # Create a pool of workers
-    pool = Pool(processes=num_workers)
+    with Pool(processes=num_workers) as pool:
+        # Create a partial function to apply MixUp on each chunk
+        apply_mixup_chunk = partial(apply_mixup_batch, alpha=alpha)
 
-    # Create a partial function to apply MixUp on each chunk
-    apply_mixup_chunk = partial(apply_mixup_batch, alpha=alpha)
+        # Chunk the data
+        data_chunks = chunk_data(X, y, batch_size)
 
-    # Chunk the data
-    data_chunks = chunk_data(X, y, batch_size)
-
-    # Apply MixUp in parallel on each chunk
-    result = pool.starmap(apply_mixup_chunk, data_chunks)
-    
-    # Close the pool
-    pool.close()
-    pool.join()
+        # Apply MixUp in parallel on each chunk
+        result = pool.starmap(apply_mixup_chunk, data_chunks)
 
     # Concatenate results and select only the required number of samples
     mixed_X = np.concatenate([r[0] for r in result], axis=0)[:additional_samples]
@@ -113,6 +112,7 @@ def apply_mixup_batch(X, y, alpha=0.2):
     mixed_y = lambda_vals[:, None] * y + (1 - lambda_vals[:, None]) * shuffled_y
     
     return mixed_X, mixed_y
+
 
 # Helper function to print class distribution
 def print_class_distribution(y, set_name):
