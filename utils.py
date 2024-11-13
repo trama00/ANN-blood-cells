@@ -14,7 +14,7 @@ from tensorflow.keras.applications import (
 # Function to check if an image matches the conditions
 def check_image(i, img, shrek, troll, tol):
     """Check if an image matches the shrek or troll images within a tolerance."""
-    if (np.allclose(img, shrek, atol=tol) or np.allclose(img, troll, atol=tol)) and i != 11959 and i != 13559:
+    if (np.allclose(img, shrek, atol=tol) or np.allclose(img, troll, atol=tol)):
         return i
     return None
 
