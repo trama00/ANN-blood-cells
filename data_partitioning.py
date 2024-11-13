@@ -6,7 +6,7 @@ from functools import partial
 from typing import Tuple, Union, Optional
 import numpy.typing as npt
 
-def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, seed=42, balance_sets="train"):
+def split_and_balance_distribution(images, labels, val_size=0.16, test_size=0.2, seed=42, balance_sets="train"):
     """
     Splits the dataset into train, validation, and test sets, balances specified sets, and prints the distribution.
     
@@ -15,9 +15,8 @@ def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, s
     - labels: np.array, the labels for the image data.
     - val_size: float, proportion of the dataset to allocate to validation.
     - test_size: float, proportion of the dataset to allocate to testing.
-    - mixup_alpha: float, mixup parameter for data augmentation (if used).
     - seed: int, random seed for reproducibility.
-    - balance_sets: str, specifies which sets to balance ("train", "val", "test", or combinations like "train and test").
+    - balance_sets: str, specifies which sets to balance ("train", "val", "test", or combinations like "train and val").
     """
     # Split the dataset
     X_train_val, X_test, y_train_val, y_test = train_test_split(
@@ -27,17 +26,15 @@ def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, s
         X_train_val, y_train_val, test_size=val_size / (1 - test_size), random_state=seed, stratify=y_train_val
     )
 
-    # Parse the `balance_sets` string to determine which sets to balance
-    balance_train = "train" in balance_sets
-    balance_val = "val" in balance_sets
-    balance_test = "test" in balance_sets
-
+    # Parse the `balance_sets` argument
+    balance_sets = {s.strip() for s in balance_sets.split(" and ")}
+    
     # Balance the specified datasets
-    if balance_train:
+    if "train" in balance_sets:
         X_train, y_train = balance_dataset(X_train, y_train, balance_percentage=1.0)
-    if balance_val:
+    if "val" in balance_sets:
         X_val, y_val = balance_dataset(X_val, y_val, balance_percentage=1.0)
-    if balance_test:
+    if "test" in balance_sets:
         X_test, y_test = balance_dataset(X_test, y_test, balance_percentage=1.0)
 
     # Print set sizes
@@ -53,6 +50,7 @@ def split_and_print_distribution(images, labels, val_size=0.16, test_size=0.2, s
     print_class_distribution(y_test, "Test")
 
     return X_train, X_val, X_test, y_train, y_val, y_test
+
 
 # Helper function to balance dataset by undersampling larger classes
 def balance_dataset(X, y, balance_percentage=1.0):
