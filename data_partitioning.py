@@ -51,7 +51,6 @@ def split_and_balance_distribution(images, labels, val_size=0.16, test_size=0.2,
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
-
 # Helper function to balance dataset by undersampling larger classes
 def balance_dataset(X, y, balance_percentage=1.0):
     class_counts = Counter(y)
