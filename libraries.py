@@ -12,6 +12,7 @@ from keras import layers as tfkl
 # from tensorflow.keras.applications import EfficientNetB1
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix, roc_auc_score, classification_report
 from sklearn.preprocessing import label_binarize
+from sklearn.utils.class_weight import compute_class_weight
 from datetime import datetime
 import cv2
 from multiprocessing import Pool
