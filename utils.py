@@ -57,7 +57,7 @@ def get_base_model(model_name, input_shape):
         raise ValueError(f"Model '{model_name}' is not available. Choose from: {list(models.keys())}")
     
     base_model = models[model_name](include_top=False, input_shape=input_shape, weights='imagenet')
-    base_model.trainable = False  # Freeze the base model
+    base_model.trainable = True  # UNFREEZED the base model
 
     return base_model
 
