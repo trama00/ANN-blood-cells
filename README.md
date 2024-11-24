@@ -28,7 +28,7 @@ Refer to this document for additional information.
 This notebook serves as a foundational template that outlines the workflow followed throughout the project. It provides an overview of the core steps involved in our process and includes links to more detailed, dedicated notebooks that focus on the key aspects of the project. Please note that **this template is not intended to be executed directly**. Instead, it serves as a reference to guide the reader through the structure and approach used. 
 
 ### Final model
-[Final Model Notebook](./finalModel.ipynb) presents the final version of our model, that resulted in a 0.94 accuracy on Codabench Leaderbord.
+[Final Model Notebook](./FinalModel.ipynb) presents the final version of our model, that resulted in a 0.94 accuracy on Codabench Leaderbord.
 
 The model consist on a Transfer Learning approach that uses `EfficientNetB2` as backbone feature extractor. The classificator is composed of three medium-light dense layers (512, 256, 128), with proper batch normalizations and regularizations. 
 
@@ -73,7 +73,7 @@ SEED = 42
 ```
 ## Preprocessing
 
-[Preprocessing Notebook](./datasetPreparation.ipynb): thorough description of the steps applied are shown in a dedicated environment, available at the link. 
+[Preprocessing Notebook](./DatasetPreparation.ipynb): thorough description of the steps applied are shown in a dedicated environment, available at the link. 
 
 ---
 
@@ -91,7 +91,7 @@ y = data['labels']
 ```
 ## Augmentations
 
-[Augmentations Notebook](./augmentations.ipynb) provides a detailed overview of all the *keras_cv* augmentations tested.
+[Augmentations Notebook](./Augmentations.ipynb) provides a detailed overview of all the *keras_cv* augmentations tested.
 
 ---
 During the development of the project a large number of augmentations were experimented with. They come from two sources:
