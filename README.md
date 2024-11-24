@@ -15,7 +15,8 @@
 ## Content
 The homework was focused on classifying eight specific classes of blood cells. We adopted a systematic trial-and-error approach to iteratively develop a convolutional neural network (CNN) model capable of achieving high accuracy. 
 
-[Report](./Report_homework1_YNWA.pdf), refer to this document for additional information.
+### [Report](./Report_homework1_YNWA.pdf)
+Refer to this document for additional information.
 
 ![classes](./img/classes.png)
 
