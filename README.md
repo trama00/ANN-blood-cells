@@ -4,6 +4,28 @@
 
 ## Homework 1: Blood-cell classification
 
+**TensorFlow/Keras | Transfer Learning | EfficientNetB2 | Medical Image Classification**
+
+Top 10 competition result for multiclass classification of 96x96 RGB blood-cell images into eight cell-state classes. The final model used an EfficientNetB2 transfer-learning backbone, heavy data augmentation, fine-tuning, and regularized dense classification layers to reach `0.94` Codabench accuracy.
+
+## Recruiter Summary
+
+- Built an end-to-end computer-vision pipeline: dataset cleaning, augmentation experiments, model selection, fine-tuning, and final evaluation.
+- Compared custom CNNs against transfer-learning approaches and selected EfficientNetB2 as the final backbone.
+- Used KerasCV augmentation pipelines to improve generalization under limited-data competition constraints.
+- Documented the full experimental path across dedicated notebooks and a written report.
+
+## Repository Structure
+
+- `FinalModel.ipynb`: final EfficientNetB2 transfer-learning model
+- `DatasetPreparation.ipynb`: data cleaning and preprocessing workflow
+- `Augmentations.ipynb`: augmentation exploration and visualization
+- `CustomCNNs.ipynb`: early custom CNN experiments
+- `py_modules/`: reusable augmentation utilities
+- `Report_homework1_YNWA.pdf`: project report
+
+---
+
 ### Team Members
 - Maria Aurora Bertasini*
 - Marco Cioci*
